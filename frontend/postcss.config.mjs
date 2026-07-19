@@ -1,1 +1,1 @@
-export default { plugins: { tailwindcss: {}, autoprefixer: {} } };
+/* moved to repository root — see /app and /package.json */
