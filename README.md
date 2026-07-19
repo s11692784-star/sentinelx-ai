@@ -49,7 +49,7 @@ Login: `admin@sentinelx.demo` / `DemoPass12345!`
 
 1. Push this repo to GitHub  
 2. Deploy `/backend` to Render/Railway with Postgres + secrets  
-3. Deploy `/frontend` to Vercel — set **Root Directory = `frontend`** and `NEXT_PUBLIC_API_URL`  
+3. Deploy repo root to Vercel with `NEXT_PUBLIC_API_URL`  
 4. Set API `CORS_ORIGINS` to your Vercel domain  
 
 Full steps: **[DEPLOY.md](./DEPLOY.md)**
