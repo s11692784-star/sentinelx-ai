@@ -47,8 +47,8 @@ export default function RepositoriesPage() {
     if (ready) load();
   }, [ready, load]);
 
-  async function createProject() {
-    if (!accessToken || !tenantId) return;
+  async function createProject(): Promise<string> {
+    if (!accessToken || !tenantId) throw new Error("Missing session");
     const res = await fetch(`${API_URL}/api/v1/organizations/${tenantId}/projects`, {
       method: "POST",
       headers: {
@@ -61,8 +61,9 @@ export default function RepositoriesPage() {
     if (!res.ok) throw new Error("Could not create project");
     const project = await res.json();
     setProjects((prev) => [...prev, project]);
-    setForm((f) => ({ ...f, project_id: project.id }));
-    return project.id as string;
+    const id = String(project.id);
+    setForm((f) => ({ ...f, project_id: id }));
+    return id;
   }
 
   async function addRepo() {
