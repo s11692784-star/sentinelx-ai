@@ -12,18 +12,14 @@ chmod +x start-backend.sh start-frontend.sh
 - API: http://localhost:8000/docs  
 - Login: `admin@sentinelx.demo` / `DemoPass12345!`
 
-## Online (Vercel + API)
+## Vercel
 
-See **[DEPLOY.md](./DEPLOY.md)** for GitHub → Vercel → Render/Railway instructions.
+Next.js is at the **repo root**. Do **not** set Root Directory to `frontend`.
 
-## Security settings
+Import GitHub repo → Root Directory blank → set:
 
-After login open **Settings** to configure:
-- MFA requirement
-- Session timeout
-- Password policy
-- IP allowlist
-- Critical / cert alerts
-- Audit retention
-- Change password + enable 2FA
-- Live security posture score
+```
+NEXT_PUBLIC_API_URL=https://your-api-host
+```
+
+See [DEPLOY.md](./DEPLOY.md).
