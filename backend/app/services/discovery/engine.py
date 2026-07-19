@@ -25,7 +25,7 @@ PATTERNS: list[tuple[str, re.Pattern[str], str, float, list[str]]] = [
     ("aws_secret_key", re.compile(r"(?i)aws(.{0,20})?(secret|access)?(.{0,20})?['\"]([0-9a-zA-Z/+]{40})['\"]"), "AWS Secret Access Key", 0.85, ["aws"]),
     ("azure_key", re.compile(r"(?i)DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{40,};"), "Azure Storage Connection String", 0.9, ["azure"]),
     ("gcp_api_key", re.compile(r"AIza[0-9A-Za-z\-_]{35}"), "Google API Key", 0.9, ["gcp", "google"]),
-    ("stripe_key", re.compile(r"sk_live_[0-9a-zA-Z]{24,}"), "Stripe Live Secret Key", 0.97, ["stripe", "payments"]),
+    ("stripe_key", re.compile(r"sk_(?:live|test)_[0-9a-zA-Z]{24,}"), "Stripe Secret Key", 0.97, ["stripe", "payments"]),
     ("twilio_key", re.compile(r"SK[0-9a-fA-F]{32}"), "Twilio API Key", 0.88, ["twilio"]),
     ("firebase", re.compile(r"(?i)firebase(.{0,20})?['\"]([A-Za-z0-9_\-]{20,})['\"]"), "Firebase Credential", 0.7, ["firebase"]),
     ("jwt", re.compile(r"eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}"), "JWT Token", 0.8, ["jwt", "auth"]),
