@@ -1,0 +1,19 @@
+{
+  "name": "sentinelx-ai",
+  "private": true,
+  "description": "Monorepo root. Preferred Vercel Root Directory: frontend",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "postinstall": "npm --prefix frontend install"
+  },
+  "dependencies": {
+    "next": "15.5.18",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

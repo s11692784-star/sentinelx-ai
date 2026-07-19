@@ -1,37 +1,64 @@
 # Deploy SentinelX AI (Vercel + API + GitHub)
 
-## Architecture for production
+## Architecture
 
 | Layer | Platform | Notes |
 |-------|----------|-------|
-| Frontend | **Vercel** | Next.js App Router in `/frontend` |
+| Frontend | **Vercel** | Next.js lives in **`/frontend`** |
 | Backend API | **Render / Railway / Fly.io** | FastAPI in `/backend` |
 | Database | **Neon / Supabase / Render Postgres** | `DATABASE_URL` |
-| Secrets | Platform env vars | Never commit `.env` |
 
 > Vercel hosts the UI only. The Python API must run on a Python host.
 
 ---
 
-## 1) Push to GitHub
+## Fix: "No Next.js version detected"
 
-```bash
-git clone <your-repo-url>
-# or use the repo already created for you
-cd sentinelx-ai
+This monorepo has **no** `package.json` with `next` at the repo root.
+Next.js is only inside **`frontend/`**.
+
+### In the Vercel dashboard (required)
+
+1. Open your project → **Settings → General**
+2. **Root Directory** → click **Edit** → set to:
+
+```
+frontend
 ```
 
-If starting from the archive:
+3. Framework Preset: **Next.js** (auto after Root Directory is set)
+4. Build Command: leave default (`next build` or `npm run build`)
+5. Install Command: leave default (`npm install`)
+6. Output Directory: leave **empty** (Next.js handles this)
+7. Save → **Deployments → Redeploy**
+
+### Do NOT
+
+- Import the monorepo with Root Directory = `.` (repo root)
+- Keep a root `vercel.json` that sets `"framework": "nextjs"` without a root `package.json`
+- Set Output Directory to `frontend/.next` manually
+
+### CLI (alternative)
 
 ```bash
-tar -xzf sentinelx-ai.tar.gz
+git clone https://github.com/s11692784-star/sentinelx-ai.git
+cd sentinelx-ai/frontend
+npx vercel
+# link project, then:
+npx vercel --prod
+```
+
+When using CLI from `frontend/`, Vercel detects Next.js correctly.
+
+---
+
+## 1) GitHub
+
+Repo: https://github.com/s11692784-star/sentinelx-ai
+
+```bash
+git clone https://github.com/s11692784-star/sentinelx-ai.git
 cd sentinelx-ai
-git init
-git add .
-git commit -m "Initial SentinelX AI commit"
-git branch -M main
-git remote add origin https://github.com/<you>/sentinelx-ai.git
-git push -u origin main
 ```
 
 ---
@@ -42,7 +69,7 @@ git push -u origin main
 2. **Root Directory:** `backend`  
 3. **Build:** `pip install -r requirements.txt`  
 4. **Start:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`  
-5. Set env vars:
+5. Env vars:
 
 ```
 APP_ENV=production
@@ -50,54 +77,63 @@ DEBUG=false
 DATABASE_URL=postgresql+asyncpg://...
 JWT_SECRET=<openssl rand -hex 32>
 AES_MASTER_KEY=<openssl rand -hex 32>
-CORS_ORIGINS=https://your-app.vercel.app
-FRONTEND_URL=https://your-app.vercel.app
+CORS_ORIGINS=https://YOUR-APP.vercel.app
+FRONTEND_URL=https://YOUR-APP.vercel.app
 ALLOW_DEMO_SEED=false
 ```
 
-6. Note your API URL, e.g. `https://sentinelx-api.onrender.com`
+6. API URL example: `https://sentinelx-api.onrender.com`
 
-Seed once (optional demo):
+Optional seed (one-off shell):
 
 ```bash
-# from a one-off shell with same env
 python scripts/seed.py
+```
+
+Demo login after seed:
+
+```
+admin@sentinelx.demo
+DemoPass12345!
 ```
 
 ---
 
 ## 3) Deploy frontend on Vercel
 
-1. [vercel.com/new](https://vercel.com/new) → import GitHub repo  
-2. **Root Directory:** `frontend`  
-3. Framework: Next.js (auto)  
-4. Environment variable:
+1. [vercel.com/new](https://vercel.com/new) → import `s11692784-star/sentinelx-ai`
+2. **IMPORTANT — Root Directory: `frontend`**
+3. Environment variable:
 
 ```
 NEXT_PUBLIC_API_URL=https://sentinelx-api.onrender.com
 ```
 
-5. Deploy  
+(no trailing slash)
 
-CLI alternative:
+4. Deploy
 
-```bash
-cd frontend
-npx vercel
-# set NEXT_PUBLIC_API_URL in project settings
-npx vercel --prod
-```
+### Vercel project settings checklist
+
+| Setting | Value |
+|---------|--------|
+| Root Directory | `frontend` |
+| Framework | Next.js |
+| Build Command | `npm run build` (default) |
+| Install Command | `npm install` (default) |
+| Output Directory | *(blank)* |
+| Node.js Version | 20.x |
 
 ---
 
 ## 4) Post-deploy checklist
 
-- [ ] Open Vercel URL → Login works  
-- [ ] Browser network calls hit your API host (not localhost)  
-- [ ] CORS_ORIGINS includes exact Vercel domain (and `*.vercel.app` preview if needed)  
-- [ ] JWT_SECRET / AES_MASTER_KEY are unique strong values  
-- [ ] Production docs disabled (`/docs` returns 404)  
-- [ ] Settings → Security posture shows checks  
+- [ ] Vercel build log shows `Next.js 15.x` and succeeds
+- [ ] Site loads; login page opens
+- [ ] Browser Network tab calls your API host (not localhost)
+- [ ] API `CORS_ORIGINS` includes exact Vercel domain
+- [ ] JWT_SECRET / AES_MASTER_KEY are strong unique values
+- [ ] Production `/docs` is disabled on API
 
 ---
 
@@ -110,14 +146,12 @@ npx vercel --prod
 
 ---
 
-## Security defaults enabled
+## Security defaults
 
 - AES-256-GCM secret encryption  
 - JWT + refresh tokens  
 - RBAC + tenant isolation (`X-Tenant-Id`)  
-- Rate limiting  
-- Security headers (HSTS, CSP on frontend, COOP/CORP on API)  
-- Production secret validation  
-- OpenAPI disabled in production  
+- Rate limiting + security headers  
+- Production secret validation; OpenAPI off in prod  
 - Hash-chained audit logs  
-- Tenant security policy UI (MFA, IP allowlist, alerts, retention)  
+- Settings UI: MFA policy, IP allowlist, alerts, password change  
