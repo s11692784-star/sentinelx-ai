@@ -1,0 +1,110 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sentinelx
+      POSTGRES_PASSWORD: sentinelx_secure_2024
+      POSTGRES_DB: sentinelx
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/app/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinelx"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env.example
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sentinelx:sentinelx_secure_2024@postgres:5432/sentinelx
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: DEV_ONLY_REPLACE_WITH_STRONG_JWT_SECRET_VALUE_32CHARS
+      AES_MASTER_KEY: DEV_ONLY_REPLACE_WITH_OPENSSL_RAND_HEX_32_BYTES_KEY_VALUE_00
+      CORS_ORIGINS: http://localhost:3000,http://frontend:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - scan_workspace:/tmp/scans
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sentinelx:sentinelx_secure_2024@postgres:5432/sentinelx
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: DEV_ONLY_REPLACE_WITH_STRONG_JWT_SECRET_VALUE_32CHARS
+      AES_MASTER_KEY: DEV_ONLY_REPLACE_WITH_OPENSSL_RAND_HEX_32_BYTES_KEY_VALUE_00
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - scan_workspace:/tmp/scans
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sentinelx:sentinelx_secure_2024@postgres:5432/sentinelx
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      AES_MASTER_KEY: DEV_ONLY_REPLACE_WITH_OPENSSL_RAND_HEX_32_BYTES_KEY_VALUE_00
+      JWT_SECRET: DEV_ONLY_REPLACE_WITH_STRONG_JWT_SECRET_VALUE_32CHARS
+    depends_on:
+      - redis
+      - worker
+    command: celery -A app.workers.celery_app beat --loglevel=info
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      INTERNAL_API_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  pgdata:
+  scan_workspace:
